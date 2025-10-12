@@ -11,7 +11,8 @@
   },
   "scripts": {
     "format": "prettier --write 'src/**/*.ts'",
-    "lint": "yarn eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "lint": "yarn eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "yarn eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "build": "rimraf lib && tsc",
     "test": "jest --config jestconfig.json --unhandled-rejections=strict",
     "prod": "webpack --config webpack.prod.js",
