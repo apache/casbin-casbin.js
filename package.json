@@ -4,7 +4,7 @@
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "repository": "https://github.com/casbin/casbin.js.git",
-  "author": "kingiw <kingiw@hotmail.com>",
+  "author": "Casbin",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=18.0.0"
