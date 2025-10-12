@@ -29,9 +29,9 @@ module.exports = {
   },
   resolve: {
     extensions: [ '.tsx', '.ts', '.js' ],
-  },
-  node: {
-    fs: "empty"
+    fallback: {
+      fs: false
+    }
   },
 
   output: {
