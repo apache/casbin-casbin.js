@@ -20,6 +20,8 @@ We demonstrate the usage of Casbin.js with [a React app](https://github.com/casb
 
 
 You can use `manual` mode in Casbin.js, and set the permission whenever you wish.
+
+### Simple Permission Format
 ```javascript
 const casbinjs = require('casbin.js');
 
@@ -42,6 +44,35 @@ authorizer.can("read", "data1").then(result => {
 authorizer.cannot("write", "data2").then(result => {
   console.log(result)
 });
+```
+
+### Using CasbinJsGetPermissionForUser Format
+If you're using a Go Casbin backend, you can directly use the output from `CasbinJsGetPermissionForUser`:
+
+```javascript
+const casbinjs = require('casbin.js');
+
+// Permission from Go backend using CasbinJsGetPermissionForUser
+// This format includes the model and policies
+const permission = {
+    "m": "[request_definition]\nr = sub, obj, act\n...",
+    "p": [
+        ["p", "alice", "data1", "read"],
+        ["p", "alice", "data2", "write"]
+    ],
+    "g": [
+        ["g", "alice", "admin"]
+    ]
+}
+
+const authorizer = new casbinjs.Authorizer("manual");
+
+await authorizer.setPermission(permission);
+await authorizer.setUser("alice");
+
+// Evaluate the permission
+const canRead = await authorizer.can("read", "data1");
+console.log(canRead); // true
 ```
 
 You can also use the `auto` mode. In details, specify a casbin backend service endpoint when initializing the Casbin.js authorizer, and set the subject when the frontend user identity changes. Casbin.js will automatically fetch the permission from the endpoint. (A pre-configurated casbin service API is required at the backend.)
