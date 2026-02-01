@@ -58,6 +58,27 @@ await authorizer.setUser("Tom");
 authorizer.can("read", "data1").then();
 ```
 
+## RBAC and Multiple Roles Support
+
+Casbin.js supports Role-Based Access Control (RBAC) including scenarios where a user has multiple roles. When using `auto` mode, the backend service should return both regular policies (`p` rules) and grouping policies (`g` rules) that define role assignments.
+
+Example backend response for a user with multiple roles:
+```javascript
+{
+  "m": "<casbin model configuration>",
+  "p": [
+    ["p", "admin", "data1", "read"],
+    ["p", "admin", "data1", "write"],
+    ["p", "editor", "data2", "read"],
+    ["p", "editor", "data2", "write"],
+    ["g", "alice", "admin"],    // Alice has admin role
+    ["g", "alice", "editor"]    // Alice also has editor role
+  ]
+}
+```
+
+With this configuration, user "alice" will have permissions from both the `admin` and `editor` roles, allowing her to access both `data1` and `data2`.
+
 More functionalities of Casbin.js are still under development. Feel free to raise issues to share your features suggestions!
 
 ## TODO MAP
