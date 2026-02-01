@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Authorizer } from '../index';
-import { basicModelStr } from './models';
-import { basicPolicies } from './policies';
+import { basicModelStr, rbacModelStr } from './models';
+import { basicPolicies, rabcPolicies } from './policies';
 import { removeLocalStorage } from '../Cache';
 import TestServer  from './server';
 
@@ -63,6 +63,46 @@ test('Manual mode', () => {
     const authorizer = new Authorizer('manual');
     authorizer.setPermission(permissionObj);
     check(authorizer);
+})
+
+test('Manual mode with CasbinJsGetPermissionForUser format', async () => {
+    const authorizer = new Authorizer('manual');
+    // This is the format returned by Go's CasbinJsGetPermissionForUser function
+    const enforcerData = {
+        m: basicModelStr,
+        p: basicPolicies,
+    };
+    await authorizer.setPermission(enforcerData);
+    await authorizer.setUser('alice');
+    await check(authorizer);
+})
+
+test('Manual mode with CasbinJsGetPermissionForUser format as string', async () => {
+    const authorizer = new Authorizer('manual');
+    // This is the format returned by Go's CasbinJsGetPermissionForUser function as JSON string
+    const enforcerDataStr = JSON.stringify({
+        m: basicModelStr,
+        p: basicPolicies,
+    });
+    await authorizer.setPermission(enforcerDataStr);
+    await authorizer.setUser('alice');
+    await check(authorizer);
+})
+
+test('Manual mode with RBAC and grouping policies', async () => {
+    const authorizer = new Authorizer('manual');
+    // This tests that 'g' policies are correctly processed
+    const enforcerData = {
+        m: rbacModelStr,
+        p: rabcPolicies,
+    };
+    await authorizer.setPermission(enforcerData);
+    await authorizer.setUser('alice');
+    // alice has direct permission to read data1
+    expect(await authorizer.can('read', 'data1')).toBe(true);
+    // alice inherits data2_admin role which can read and write data2
+    expect(await authorizer.can('read', 'data2')).toBe(true);
+    expect(await authorizer.can('write', 'data2')).toBe(true);
 })
 
 
