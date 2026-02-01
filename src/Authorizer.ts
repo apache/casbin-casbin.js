@@ -122,7 +122,8 @@ export class Authorizer {
             for (const sArray of obj['g']) {
                 let arr = sArray as string[];
                 arr = arr.map(v => v.trim())
-                const pType = arr.shift()
+                // Remove and discard the pType prefix (e.g., "g") before adding to enforcer
+                arr.shift();
                 await this.enforcer.addGroupingPolicy(...arr);
             }
         }

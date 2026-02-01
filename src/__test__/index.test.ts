@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Authorizer } from '../index';
 import { basicModelStr, rbacModelStr } from './models';
-import { basicPolicies, rabcPolicies } from './policies';
+import { basicPolicies, rbacPolicies } from './policies';
 import { removeLocalStorage } from '../Cache';
 import TestServer  from './server';
 
@@ -94,7 +94,7 @@ test('Manual mode with RBAC and grouping policies', async () => {
     // This tests that 'g' policies are correctly processed
     const enforcerData = {
         m: rbacModelStr,
-        p: rabcPolicies,
+        p: rbacPolicies,
     };
     await authorizer.setPermission(enforcerData);
     await authorizer.setUser('alice');
