@@ -98,9 +98,7 @@ class TestServer {
         })
     }
 
-    public async start() : Promise<void> {
-        await this.casbinServ.run();
-        this.setRouter();
+    private startServer(): Promise<void> {
         return new Promise((resolve) => {
             this.listener = this.app.listen(this.port, () => {
                 console.log(`Express server is listening at http://localhost:${this.port}`);
@@ -109,15 +107,16 @@ class TestServer {
         });
     }
 
+    public async start() : Promise<void> {
+        await this.casbinServ.run();
+        this.setRouter();
+        return this.startServer();
+    }
+
     public async startWithRBAC() : Promise<void> {
         await this.casbinServ.runWithRBAC();
         this.setRouter();
-        return new Promise((resolve) => {
-            this.listener = this.app.listen(this.port, () => {
-                console.log(`Express server is listening at http://localhost:${this.port}`);
-                resolve();
-            });
-        });
+        return this.startServer();
     }
 
     public terminate() : void {

@@ -78,7 +78,7 @@ test('Load casbin from strings.', async () => {
     expect(await e.enforce("alice", "data1", "write")).toBe(false);
 })
 
-const respDataWithMultipleRoles = JSON.stringify({
+const rbacMultipleRolesRespData = JSON.stringify({
     m: rbacModelStr,
     p: [
         ["p", "admin", "data1", "read"],
@@ -95,7 +95,7 @@ const respDataWithMultipleRoles = JSON.stringify({
 
 test('Authorizer with multiple roles per user', async() => {
     const authorizer = new Authorizer("auto", {endpoint: "whatever"});
-    await authorizer.initEnforcer(respDataWithMultipleRoles);
+    await authorizer.initEnforcer(rbacMultipleRolesRespData);
     
     // Test alice who has both admin and editor roles
     authorizer.user = "alice";
