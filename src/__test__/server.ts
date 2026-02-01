@@ -2,7 +2,8 @@ import * as http from "http";
 import express from 'express';
 import { newEnforcer, Enforcer, Model } from 'casbin-core';
 import { StringKV } from '../types';
-import { basicModelStr } from './models'
+import { basicModelStr, rbacModelStr } from './models';
+import { rbacMultipleRolesPolicies } from './policies';
 
 class CasbinService {
     private enforcer! : Enforcer;
@@ -11,6 +12,24 @@ class CasbinService {
         // RBAC API doesn't support RBAC w/ domain.
         // this.enforcer = await newEnforcer('./src/__test__/example/rbac_with_domains_model.conf', './src/__test__/example/rbac_with_domains_policy.csv');
         this.enforcer = await newEnforcer(new Model(basicModelStr));
+    }
+    
+    public async runWithRBAC() {
+        const m = new Model(rbacModelStr);
+        this.enforcer = await newEnforcer(m);
+        // Load policies for RBAC with multiple roles
+        for (const policy of rbacMultipleRolesPolicies) {
+            const trimmedPolicy = policy.map(p => p.trim()).filter(p => p !== '');
+            if (trimmedPolicy.length > 0) {
+                const pType = trimmedPolicy[0];
+                const args = trimmedPolicy.slice(1);
+                if (pType === 'p') {
+                    await this.enforcer.addPolicy(...args);
+                } else if (pType === 'g') {
+                    await this.enforcer.addGroupingPolicy(...args);
+                }
+            }
+        }
     }
     
     public async getEnforcerConfig(sub: string): Promise<string> {
@@ -35,6 +54,13 @@ class CasbinService {
         obj['p'] = await this.enforcer.getPolicy();
         for (const arr of obj['p']) {
             arr.splice(0, 0, 'p');
+        }
+        
+        // Include grouping policies (role assignments) for RBAC support
+        const groupingPolicies = await this.enforcer.getGroupingPolicy();
+        for (const arr of groupingPolicies) {
+            arr.splice(0, 0, 'g');
+            obj['p'].push(arr);
         }
         
         return JSON.stringify(obj);
@@ -75,7 +101,23 @@ class TestServer {
     public async start() : Promise<void> {
         await this.casbinServ.run();
         this.setRouter();
-        this.listener = this.app.listen(this.port, () => console.log(`Express server is listening at http://localhost:${this.port}`));
+        return new Promise((resolve) => {
+            this.listener = this.app.listen(this.port, () => {
+                console.log(`Express server is listening at http://localhost:${this.port}`);
+                resolve();
+            });
+        });
+    }
+
+    public async startWithRBAC() : Promise<void> {
+        await this.casbinServ.runWithRBAC();
+        this.setRouter();
+        return new Promise((resolve) => {
+            this.listener = this.app.listen(this.port, () => {
+                console.log(`Express server is listening at http://localhost:${this.port}`);
+                resolve();
+            });
+        });
     }
 
     public terminate() : void {
