@@ -54,7 +54,7 @@
   "dependencies": {
     "@babel/core": "^7.14.6",
     "@babel/preset-env": "^7.14.5",
-    "axios": "^0.21.1",
+    "axios": "^0.30.3",
     "babel-loader": ">=8.1.0",
     "casbin-core": "^0.0.0-beta.2",
     "js-cookie": "^2.2.1"
