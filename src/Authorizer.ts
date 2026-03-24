@@ -76,11 +76,28 @@ export class Authorizer {
         }
     }
 
-    public setPermission(permission : Record<string, unknown> | string) : void{
-        if (this.permission === undefined) {
-            this.permission = new Permission();
+    public async setPermission(permission : Record<string, unknown> | string) : Promise<void>{
+        // Parse the permission if it's a string
+        let permObj: Record<string, unknown>;
+        if (typeof permission === 'string') {
+            permObj = JSON.parse(permission);
+        } else {
+            permObj = permission;
         }
-        this.permission.load(permission);
+
+        // Check if this is enforcer format (contains 'm' and/or 'p' keys)
+        // This format comes from Go backend's CasbinJsGetPermissionForUser
+        if ('m' in permObj || 'p' in permObj) {
+            // Use enforcer format - initialize the enforcer
+            const permStr = typeof permission === 'string' ? permission : JSON.stringify(permission);
+            await this.initEnforcer(permStr);
+        } else {
+            // Use simple permission format
+            if (this.permission === undefined) {
+                this.permission = new Permission();
+            }
+            this.permission.load(permission);
+        }
     }
 
     public async initEnforcer(s: string): Promise<void> {
@@ -122,8 +139,9 @@ export class Authorizer {
      * @param user The current user
      */
     public async setUser(user : string) : Promise<void> {
-        if (this.mode == 'auto' && user !== this.user) {
-            this.user = user;
+        const oldUser = this.user;
+        this.user = user;
+        if (this.mode == 'auto' && user !== oldUser) {
             let config = Cache.loadFromLocalStorage(user);
             if (config === null) {
                 config = await this.getEnforcerDataFromSvr();
@@ -135,6 +153,15 @@ export class Authorizer {
 
     public async can(action: string, object: string, domain?: string): Promise<boolean> {
         if (this.mode == "manual") {
+            // Check if enforcer is available (set via enforcer format in setPermission)
+            if (this.enforcer !== undefined) {
+                if (domain == undefined) {
+                    return await this.enforcer.enforce(this.user, object, action);
+                } else {
+                    return await this.enforcer.enforce(this.user, domain, object, action);
+                }
+            }
+            // Fall back to simple permission check
             return this.permission !== undefined && this.permission.check(action, object);
         } else if (this.mode == "auto") {
             if (this.enforcer === undefined) {

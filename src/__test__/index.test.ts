@@ -59,10 +59,34 @@ const permissionObj = {
 //     check(authorizer);
 // })
 
-test('Manual mode', () => {
+test('Manual mode', async () => {
     const authorizer = new Authorizer('manual');
-    authorizer.setPermission(permissionObj);
-    check(authorizer);
+    await authorizer.setPermission(permissionObj);
+    await check(authorizer);
+})
+
+test('Manual mode with enforcer format (from Go backend)', async () => {
+    // This simulates the format returned by Go's CasbinJsGetPermissionForUser
+    const enforcerFormat = {
+        m: basicModelStr,
+        p: basicPolicies,
+    };
+    const authorizer = new Authorizer('manual');
+    await authorizer.setPermission(enforcerFormat);
+    await authorizer.setUser('alice');
+    await check(authorizer);
+})
+
+test('Manual mode with enforcer format as JSON string', async () => {
+    // This simulates the format returned by Go's CasbinJsGetPermissionForUser as a string
+    const enforcerFormat = JSON.stringify({
+        m: basicModelStr,
+        p: basicPolicies,
+    });
+    const authorizer = new Authorizer('manual');
+    await authorizer.setPermission(enforcerFormat);
+    await authorizer.setUser('alice');
+    await check(authorizer);
 })
 
 
