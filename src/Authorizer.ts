@@ -76,11 +76,26 @@ export class Authorizer {
         }
     }
 
-    public setPermission(permission : Record<string, unknown> | string) : void{
-        if (this.permission === undefined) {
-            this.permission = new Permission();
+    public async setPermission(permission : Record<string, unknown> | string) : Promise<void>{
+        // Parse permission if it's a string
+        let permObj: Record<string, unknown>;
+        if (typeof permission === 'string') {
+            permObj = JSON.parse(permission);
+        } else {
+            permObj = permission;
         }
-        this.permission.load(permission);
+
+        // Check if this is enforcer format (has 'm' and 'p' keys from CasbinJsGetPermissionForUser)
+        if ('m' in permObj && 'p' in permObj) {
+            // Initialize enforcer with the provided data
+            await this.initEnforcer(typeof permission === 'string' ? permission : JSON.stringify(permission));
+        } else {
+            // Use simple permission format for manual mode
+            if (this.permission === undefined) {
+                this.permission = new Permission();
+            }
+            this.permission.load(permission);
+        }
     }
 
     public async initEnforcer(s: string): Promise<void> {
@@ -100,6 +115,16 @@ export class Authorizer {
                 } else if (pType == 'g'){
                     await this.enforcer.addGroupingPolicy(...arr);
                 }
+            }
+        }
+        // Also process 'g' policies if they exist in a separate key
+        if ('g' in obj) {
+            for (const sArray of obj['g']) {
+                let arr = sArray as string[];
+                arr = arr.map(v => v.trim())
+                // Remove and discard the pType prefix (e.g., "g") before adding to enforcer
+                arr.shift();
+                await this.enforcer.addGroupingPolicy(...arr);
             }
         }
     }
@@ -130,11 +155,26 @@ export class Authorizer {
                 Cache.saveToLocalStorage(user, config, this.cacheExpiredTime);
             }
             await this.initEnforcer(config);
+        } else {
+            // For manual mode, just set the user for enforcer checks
+            this.user = user;
         }
     }
 
     public async can(action: string, object: string, domain?: string): Promise<boolean> {
         if (this.mode == "manual") {
+            // If enforcer is initialized (from CasbinJsGetPermissionForUser format), use it
+            if (this.enforcer !== undefined) {
+                if (this.user === undefined) {
+                    throw Error("User not set. Call setUser() first when using enforcer format.");
+                }
+                if (domain == undefined) {
+                    return await this.enforcer.enforce(this.user, object, action);
+                } else {
+                    return await this.enforcer.enforce(this.user, domain, object, action);
+                }
+            }
+            // Otherwise use simple permission check
             return this.permission !== undefined && this.permission.check(action, object);
         } else if (this.mode == "auto") {
             if (this.enforcer === undefined) {

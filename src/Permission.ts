@@ -25,7 +25,7 @@ export default class Permission {
         // Generate data: {key:Objects, value: Array of actions}
         const tmp : StringKV = {};
         for (const act in p) {
-            for (const obj in p[act]) {
+            for (const obj of p[act]) {  // Fixed: use 'for...of' to iterate over array values, not 'for...in' which iterates over indices
                 if (!(obj in tmp)) {
                     tmp[obj] = [];
                 }
