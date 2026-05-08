@@ -1,27 +1,24 @@
-import axios from 'axios';
 import { Authorizer } from '../index';
 import { basicModelStr } from './models';
 import { basicPolicies } from './policies';
 import { removeLocalStorage } from '../Cache';
 import TestServer  from './server';
 
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
-
 test('Mock functions', () => {
     const respObj = {
         m: basicModelStr,
-        p: basicPolicies
-    }
-    const resp = { data: { message: 'ok', data: JSON.stringify(respObj)}};
-    // Specify the returned data of the mockedAxios once
-    mockedAxios.get.mockImplementationOnce(() => Promise.resolve(resp));
+        p: basicPolicies,
+    };
+    const mockResponse = { message: 'ok', data: JSON.stringify(respObj) };
+    const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+    } as Response);
     // TODO: Use mock function to get response object
     // const authorizer = new Authorizer('http://localhost:4000');
     // authorizer.setUser('alice');
     // expect(authorizer.getPermission()).toMatchObject(respObj);
-
-    // expect(mockedAxios.get('http://localhost:4000/api/permissions?subject=alice')).toMatchObject(respObj);
+    mockFetch.mockRestore();
 });
 
 async function check(authorizer: Authorizer) {

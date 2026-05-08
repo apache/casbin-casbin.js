@@ -11,6 +11,13 @@ class CasbinService {
         // RBAC API doesn't support RBAC w/ domain.
         // this.enforcer = await newEnforcer('./src/__test__/example/rbac_with_domains_model.conf', './src/__test__/example/rbac_with_domains_policy.csv');
         this.enforcer = await newEnforcer(new Model(basicModelStr));
+        // These policies mirror basicPolicies from policies.ts, which the integration test's
+        // check() helper expects. Previously this was never reached because jest.mock('axios')
+        // intercepted all HTTP calls before they hit the server. Now that auto mode uses native
+        // fetch, the test makes a real HTTP request, so the server must have policies loaded.
+        await this.enforcer.addPolicy('alice', 'data1', 'read');
+        await this.enforcer.addPolicy('alice', 'data2', 'read');
+        await this.enforcer.addPolicy('alice', 'data2', 'write');
     }
     
     public async getEnforcerConfig(sub: string): Promise<string> {
