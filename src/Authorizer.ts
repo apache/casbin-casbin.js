@@ -1,4 +1,3 @@
-import axios from 'axios';
 import * as casbin from 'casbin-core';
 import Permission from './Permission';
 import { StringKV } from './types';
@@ -107,14 +106,18 @@ export class Authorizer {
     /**
      * Initialize the enforcer
      */
-    public async getEnforcerDataFromSvr(): Promise<string>{
+    public async getEnforcerDataFromSvr(): Promise<string> {
         if (this.endpoint === undefined || this.endpoint === null) {
-            throw Error("Endpoint is null or not specified.");
+            throw Error('Endpoint is null or not specified.');
         }
-        const resp = await axios.get<BaseResponse>(`${this.endpoint}?subject=${this.user}`, {
-            headers: this.requestHeaders,
+        const resp = await fetch(`${this.endpoint}?subject=${this.user}`, {
+            headers: this.requestHeaders as unknown as HeadersInit,
         });
-        return resp.data.data;
+        if (!resp.ok) {
+            throw new Error(`Request failed with status ${resp.status}`);
+        }
+        const body: BaseResponse = await resp.json();
+        return body.data;
     }
 
     /**
