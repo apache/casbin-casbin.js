@@ -2,7 +2,8 @@ import * as http from "http";
 import express from 'express';
 import { newEnforcer, Enforcer, Model } from 'casbin-core';
 import { StringKV } from '../types';
-import { basicModelStr } from './models'
+import { basicModelStr } from './models';
+import { basicPolicies } from './policies';
 
 class CasbinService {
     private enforcer! : Enforcer;
@@ -11,6 +12,13 @@ class CasbinService {
         // RBAC API doesn't support RBAC w/ domain.
         // this.enforcer = await newEnforcer('./src/__test__/example/rbac_with_domains_model.conf', './src/__test__/example/rbac_with_domains_policy.csv');
         this.enforcer = await newEnforcer(new Model(basicModelStr));
+        for (const policy of basicPolicies) {
+            const arr = policy.map(v => v.trim());
+            const pType = arr.shift();
+            if (pType === 'p') {
+                await this.enforcer.addPolicy(...arr);
+            }
+        }
     }
     
     public async getEnforcerConfig(sub: string): Promise<string> {
