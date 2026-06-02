@@ -51,7 +51,7 @@ jobs:
           node-version: '20.x'
 
       - name: Run semantic-release
-        if: github.repository == 'casbin/casbin.js' && github.event_name == 'push'
+        if: github.repository == 'apache/casbin-casbin.js' && github.event_name == 'push'
         run: |
           yarn install --no-lockfile
           yarn run prepack

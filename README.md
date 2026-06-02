@@ -1,7 +1,7 @@
 # Casbin.js
 
-[![GitHub Actions](https://github.com/casbin/casbin.js/workflows/build/badge.svg)](https://github.com/casbin/casbin.js/actions)
-[![Release](https://img.shields.io/github/release/casbin/casbin.js.svg)](https://github.com/casbin/casbin.js/releases/latest)
+[![GitHub Actions](https://github.com/apache/casbin-casbin.js/workflows/build/badge.svg)](https://github.com/apache/casbin-casbin.js/actions)
+[![Release](https://img.shields.io/github/release/apache/casbin-casbin.js.svg)](https://github.com/apache/casbin-casbin.js/releases/latest)
 [![NPM version][npm-image]][npm-url]
 [![NPM download][download-image]][download-url]
 [![install size](https://packagephobia.now.sh/badge?p=casbin.js)](https://packagephobia.now.sh/result?p=casbin.js)
