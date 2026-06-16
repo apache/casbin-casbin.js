@@ -1,3 +1,11 @@
+# [1.2.0](https://github.com/apache/casbin-casbin.js/compare/v1.1.0...v1.2.0) (2026-06-16)
+
+
+### Features
+
+* replace axios with fetch ([30254d3](https://github.com/apache/casbin-casbin.js/commit/30254d3586b8fd05515ebaf9c4cae158ebe55e13))
+* update repo URL ([ce3e66a](https://github.com/apache/casbin-casbin.js/commit/ce3e66ad621b16153be4654702975f703eac87ff))
+
 # [1.1.0](https://github.com/casbin/casbin.js/compare/v1.0.0...v1.1.0) (2025-10-12)
 
 
