@@ -20,6 +20,8 @@ We demonstrate the usage of Casbin.js with [a React app](https://github.com/casb
 
 
 You can use `manual` mode in Casbin.js, and set the permission whenever you wish.
+
+### Simple Permission Format
 ```javascript
 const casbinjs = require('casbin.js');
 
@@ -34,12 +36,35 @@ const permission = {
 // Run casbin.js in manual mode, which requires you to set the permission manually.
 const authorizer = new casbinjs.Authorizer("manual");
 
-authorizer.setPermission(permission);
+await authorizer.setPermission(permission);
 
 authorizer.can("read", "data1").then(result => {
   console.log(result)
 })
 authorizer.cannot("write", "data2").then(result => {
+  console.log(result)
+});
+```
+
+### Using Enforcer Format from Go Backend
+If you're using Go's `CasbinJsGetPermissionForUser` API, you can directly pass the result to `setPermission()` in manual mode. The library will automatically detect the enforcer format and handle it correctly.
+
+```javascript
+const casbinjs = require('casbin.js');
+
+// Get permission from your Go backend API
+const responseFromApi = await fetch('http://your-api/casbin-permission').then(r => r.json());
+
+const authorizer = new casbinjs.Authorizer("manual");
+
+// Set permission with enforcer format (contains 'm' and 'p' keys)
+await authorizer.setPermission(responseFromApi);
+
+// Set the current user
+await authorizer.setUser("alice");
+
+// Evaluate permissions
+authorizer.can("read", "data1").then(result => {
   console.log(result)
 });
 ```
