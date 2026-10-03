@@ -12,7 +12,7 @@
 [download-image]: https://img.shields.io/npm/dm/casbin.js.svg?style=flat-square
 [download-url]: https://npmjs.org/package/casbin.js
 
-Casbin.js is the frontend library for [Casbin](https://casbin.org), which facilitates the manipulation, management and storage of the user permission in a frontend application.
+Casbin.js is the frontend library for [Casbin](https://casbin.apache.org), which facilitates the manipulation, management and storage of the user permission in a frontend application.
 
 ## Example
 
