@@ -1,59 +1,95 @@
+const STORAGE_PREFIX = 'casbinjs_';
+
 const isLocalStorageAvailable: boolean = (() => {
     if (typeof window === 'undefined' || !window.localStorage) {
-        return false
+        return false;
     }
     try {
-        const key = "fUjXn2r59"; // A random key
-        const value = "test";
-        localStorage.setItem(key, value);
-        localStorage.getItem(key);
-        localStorage.removeItem(key);
+        const key = 'fUjXn2r59'; // A random key
+        window.localStorage.setItem(key, 'test');
+        window.localStorage.getItem(key);
+        window.localStorage.removeItem(key);
         return true;
     } catch (e) {
         return false;
     }
 })();
 
-export function saveToLocalStorage(key: string, value: string, expired: number): number{
+function storageKey(key: string): string {
+    return `${STORAGE_PREFIX}${key}`;
+}
+
+/**
+ * Save a permission to localStorage.
+ * @returns 0 on success, -1 when the cache is unavailable. Failing to cache
+ * the permission is not fatal, the caller can still use the in-memory copy.
+ */
+export function saveToLocalStorage(key: string, value: string, expired: number): number {
     if (!isLocalStorageAvailable) {
         return -1;
     }
     const savedItem = {
         value: value,
-        expired: Date.now() + 1000 * expired
+        expired: Date.now() + 1000 * expired,
     };
     try {
-        localStorage.setItem(`casbinjs_${key}`, JSON.stringify(savedItem));
+        window.localStorage.setItem(storageKey(key), JSON.stringify(savedItem));
+        return 0;
     } catch (e) {
-        throw(e)
-        // TODO: Process the quotaExceededError
+        // Typically QuotaExceededError. The cache is only an optimization.
+        return -1;
     }
-    return 0;
 }
 
 /***
- * return: a string.
- * If ret == null, it means there is no such user permission.
+ * Load a permission from localStorage.
+ * @returns The saved value, or null when there is no such entry or it expired.
  */
-export function loadFromLocalStorage(key: string): string | null{
+export function loadFromLocalStorage(key: string): string | null {
     if (!isLocalStorageAvailable) {
         return null;
     }
-    const itemStr = localStorage.getItem(`casbinjs_${key}`);
-    // No cache
+    let itemStr: string | null;
+    try {
+        itemStr = window.localStorage.getItem(storageKey(key));
+    } catch (e) {
+        // Storage can become unavailable at runtime (for example in private mode).
+        return null;
+    }
     if (itemStr === null) {
         return null;
     }
-    const item = JSON.parse(itemStr);
-
-    if (Date.now() > item["expired"]){
-        localStorage.removeItem(`casbinjs_${key}`);
+    let item: unknown;
+    try {
+        item = JSON.parse(itemStr);
+    } catch (e) {
+        // A corrupted entry (another script, a manual edit) must not break the caller.
+        removeLocalStorage(key);
         return null;
-    } else {
-        return item['value'];
     }
+    if (item === null || typeof item !== 'object') {
+        removeLocalStorage(key);
+        return null;
+    }
+    const { value, expired } = item as { value?: unknown; expired?: unknown };
+    if (typeof value !== 'string' || typeof expired !== 'number') {
+        removeLocalStorage(key);
+        return null;
+    }
+    if (Date.now() > expired) {
+        removeLocalStorage(key);
+        return null;
+    }
+    return value;
 }
 
-export function removeLocalStorage(key: string) {
-    localStorage.removeItem(`casbinjs_${key}`);
+export function removeLocalStorage(key: string): void {
+    if (!isLocalStorageAvailable) {
+        return;
+    }
+    try {
+        window.localStorage.removeItem(storageKey(key));
+    } catch (e) {
+        // Nothing to do, the entry is gone from the cache one way or another.
+    }
 }

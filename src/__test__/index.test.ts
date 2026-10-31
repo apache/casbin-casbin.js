@@ -1,15 +1,7 @@
 import { Authorizer } from '../index';
 import { basicModelStr } from './models';
 import { basicPolicies } from './policies';
-import { removeLocalStorage } from '../Cache';
-import TestServer  from './server';
-
-test('Mock functions', () => {
-    // TODO: Use mock function to get response object
-    // const authorizer = new Authorizer('http://localhost:4000');
-    // authorizer.setUser('alice');
-    // expect(authorizer.getPermission()).toMatchObject(respObj);
-});
+import TestServer from './server';
 
 async function check(authorizer: Authorizer) {
     // can
@@ -32,52 +24,43 @@ async function check(authorizer: Authorizer) {
 
 const permissionObj = {
     read: ['data1', 'data2'],
-    write: ['data2']
-}
+    write: ['data2'],
+};
 
-// test('Cookies mode', () => {
-//     const permissionObj = {
-//         read: ['data1', 'data2', 'data3'],
-//         write: ['data1']
-//     }
-//     const cookieKey = 'test_perm'
-//     Cookies.set('test_perm', JSON.stringify(permissionObj));
-//     const authorizer = new Authorizer('cookies', {cookieKey: cookieKey});
-//     check(authorizer);
-// })
-
-test('Manual mode', () => {
+test('Manual mode', async () => {
     const authorizer = new Authorizer('manual');
     authorizer.setPermission(permissionObj);
-    check(authorizer);
-})
-
+    await check(authorizer);
+    expect(authorizer.getPermission()).toEqual(permissionObj);
+});
 
 test('Auto mode', async () => {
     const respData = JSON.stringify({
         m: basicModelStr,
         p: basicPolicies,
     });
-    const authorizer = new Authorizer("auto", {endpoint: "whatever"});
-    removeLocalStorage('alice');
+    const authorizer = new Authorizer('auto', { endpoint: 'whatever' });
     await authorizer.initEnforcer(respData);
-    authorizer.user = "alice";
+    authorizer.user = 'alice';
     await check(authorizer);
-})
+});
 
 describe('Auto mode with server', () => {
     let server: TestServer;
+
     beforeAll(async () => {
         server = new TestServer();
         await server.start();
     });
 
+    afterAll(() => server.terminate());
+
     test('Request for /api/permissions', async () => {
-        removeLocalStorage('alice');
-        const authorizer = new Authorizer('auto', { endpoint: 'http://localhost:4000/api/permissions'});
+        const endpoint = `http://localhost:${server.port}/api/permissions`;
+        const authorizer = new Authorizer('auto', { endpoint });
         await authorizer.setUser('alice');
         await check(authorizer);
+        // The permission is cached for the next authorizer of the same endpoint and user.
+        expect(localStorage.getItem(`casbinjs_${endpoint}::alice`)).not.toBeNull();
     });
-
-    afterAll(() => server.terminate());
 });

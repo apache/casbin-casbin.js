@@ -1,20 +1,29 @@
-import {StringKV} from './types';
+import { StringKV } from './types';
 
 export default class Permission {
-    private actObjData : Map<string, Array<string>>;
-    private objActData : Map<string, Array<string>>;
+    private actObjData: Map<string, Array<string>>;
+    private objActData: Map<string, Array<string>>;
 
     public constructor() {
         this.actObjData = new Map<string, Array<string>>();
         this.objActData = new Map<string, Array<string>>();
     }
 
-    public load(permission : string | Record<string, unknown>) : void {
-        let p : StringKV;
-        if (typeof(permission) == 'string') {
-            p = JSON.parse(permission) as StringKV;
-        } else {
-            p = permission as StringKV;
+    public load(permission: string | Record<string, unknown>): void {
+        const p = typeof permission === 'string' ? JSON.parse(permission) : permission;
+        if (p === null || typeof p !== 'object' || Array.isArray(p)) {
+            throw new Error('The permission must be a JSON object that maps actions to arrays of objects.');
+        }
+
+        // Validate before touching the current permission, a malformed input
+        // must not leave a half-loaded one behind.
+        const entries: Array<[string, Array<string>]> = [];
+        for (const act of Object.keys(p)) {
+            const objects = (p as Record<string, unknown>)[act];
+            if (!Array.isArray(objects)) {
+                throw new Error(`The permission of action "${act}" must be an array of objects.`);
+            }
+            entries.push([act, objects as Array<string>]);
         }
 
         // A load replaces the permission, it does not merge into the previous one.
@@ -23,41 +32,43 @@ export default class Permission {
         this.actObjData.clear();
         this.objActData.clear();
 
-        // Generate data: {key:Actions, value: Array of objects}
-        for (const act in p) {
-            this.actObjData.set(act, p[act] as Array<string>);
-        }
+        const objActData = new Map<string, Array<string>>();
+        for (const [act, objects] of entries) {
+            this.actObjData.set(act, objects);
 
-        // Generate data: {key:Objects, value: Array of actions}
-        const tmp : StringKV = {};
-        for (const act in p) {
-            for (const obj of p[act]) {
-                if (!(obj in tmp)) {
-                    tmp[obj] = [];
+            // Generate data: {key:Objects, value: Array of actions}
+            // A Map is used instead of an object so that an object name such
+            // as "__proto__" is stored as plain data.
+            for (const obj of objects) {
+                const actions = objActData.get(obj);
+                if (actions === undefined) {
+                    objActData.set(obj, [act]);
+                } else {
+                    actions.push(act);
                 }
-                tmp[obj].push(act);
             }
         }
-        for (const obj in tmp) {
-            this.objActData.set(obj, tmp[obj] as Array<string>);
-        }
-        
+        objActData.forEach((actions, obj) => this.objActData.set(obj, actions));
     }
 
-    public getPermissionJsonObject() : StringKV {
-        const obj : StringKV = {};
-        this.actObjData.forEach((value, key) => (obj[key] = value));
+    public getPermissionJsonObject(): StringKV {
+        const obj: StringKV = {};
+        this.actObjData.forEach((value, key) => {
+            // defineProperty keeps an action named "__proto__" an ordinary own
+            // property instead of mutating the prototype of the result.
+            Object.defineProperty(obj, key, { value: value.slice(), enumerable: true, writable: true, configurable: true });
+        });
         return obj;
     }
 
     /*
         Parse the permission into JSON string
     */
-    public getPermissionString() : string {
+    public getPermissionString(): string {
         return JSON.stringify(this.getPermissionJsonObject());
     }
 
-    public getTargetsFromAction(action: string) : Array<string> {
+    public getTargetsFromAction(action: string): Array<string> {
         const result = this.actObjData.get(action);
         if (result === undefined) {
             return new Array<string>();
@@ -66,15 +77,15 @@ export default class Permission {
         }
     }
 
-    public getActionsObjects() : Map<string, Array<string>> {
+    public getActionsObjects(): Map<string, Array<string>> {
         return this.actObjData;
     }
 
-    public getObjectsActions() : Map<string, Array<string>> {
+    public getObjectsActions(): Map<string, Array<string>> {
         return this.objActData;
     }
 
-    public check(action : string, object : string) : boolean {
+    public check(action: string, object: string): boolean {
         const objects = this.actObjData.get(action);
         if (objects == undefined) {
             return false;
