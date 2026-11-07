@@ -15,7 +15,6 @@ software distributed under the License is distributed on an
 KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
-
 -->
 
 # [1.2.0](https://github.com/apache/casbin-casbin.js/compare/v1.1.0...v1.2.0) (2026-06-16)

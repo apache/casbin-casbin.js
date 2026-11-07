@@ -22,7 +22,7 @@ jestconfig.json
 # Generated dependency resolution data.
 yarn.lock
 # Short, declarative authorization test data: policy tuples without code.
-src/__test__/examples/abac_with_obj_rule_policy.csv
-src/__test__/examples/basic_policy.csv
-src/__test__/examples/rbac_policy.csv
-src/__test__/examples/rbac_with_domains_policy.csv
+abac_with_obj_rule_policy.csv
+basic_policy.csv
+rbac_policy.csv
+rbac_with_domains_policy.csv
