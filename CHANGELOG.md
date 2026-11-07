@@ -1,3 +1,11 @@
+# 1.3.0 (unreleased)
+
+- Publish future versions as `apache-casbin.js`; update consumer imports accordingly.
+- Support permission cookies, multiple roles and role inheritance, including domain models.
+- Accept backend model/policy exports in manual mode and improve permission loading and cache handling.
+- Modernize the development dependencies and validate Node.js 20, 22 and 24 in CI.
+- Include Apache incubation information in the package display and metadata.
+
 # [1.2.0](https://github.com/apache/casbin-casbin.js/compare/v1.1.0...v1.2.0) (2026-06-16)
 
 
