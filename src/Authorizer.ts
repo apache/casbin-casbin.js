@@ -259,7 +259,7 @@ export class Authorizer {
         // The permission of the former identity must not stay in use while the
         // new one is loading, otherwise a slow request would keep the old rights.
         // Bumping the version also invalidates an enforcer that is still being built.
-        this.stateVersion++;
+        const version = ++this.stateVersion;
         this.enforcer = undefined;
         this.permission = undefined;
         this.enforcerPromise = undefined;
@@ -269,12 +269,15 @@ export class Authorizer {
             let config: PermissionSource;
             if (cached === null) {
                 config = await this.getEnforcerDataFromSvr();
+                if (version !== this.stateVersion) {
+                    return;
+                }
                 Cache.saveToLocalStorage(key, typeof config === 'string' ? config : JSON.stringify(config), this.cacheExpiredTime);
             } else {
                 config = cached;
             }
             // Another identity was requested while this one was loading.
-            if (this.user !== user) {
+            if (version !== this.stateVersion) {
                 return;
             }
             await this.initEnforcer(config);
@@ -302,6 +305,10 @@ export class Authorizer {
         const key = this.cookieKey ?? DEFAULT_COOKIE_KEY;
         const permission = Cookies.get(key);
         if (permission === undefined) {
+            this.stateVersion++;
+            this.permission = undefined;
+            this.enforcer = undefined;
+            this.enforcerPromise = undefined;
             console.warn(`WARNING: No cookie named "${key}" was found.`);
             return false;
         }
