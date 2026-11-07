@@ -6,7 +6,7 @@
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#   https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
@@ -15,27 +15,32 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Manual release. Releases are cut by pushing a tag by hand:
-#
-#   vX.Y.Z-rcN  ->  GitHub *pre-release* only (the candidate to vote on)
-#   vX.Y.Z      ->  GitHub release + publish to npm (after the vote passed)
-#
-# Both cases attach the same Apache source package. The release manager
-# downloads it, signs it locally and takes it to the vote.
-
-name: release
+name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*-rc*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing final tag vX.Y.Z, pointing at the approved candidate commit'
+        required: true
+        type: string
+      project_result:
+        description: 'Public project vote result URL (lists.apache.org/thread/...)'
+        required: true
+        type: string
+      incubator_result:
+        description: 'Public IPMC vote result URL (lists.apache.org/thread/...)'
+        required: true
+        type: string
 
 permissions:
   contents: write
 
-env:
-  # Base name of the Apache source package, without version/suffix.
-  ARTIFACT_PREFIX: apache-casbin-js
+concurrency:
+  group: release-${{ github.repository }}-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -44,63 +49,95 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
-
-      - name: Resolve version from tag
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
-          if [[ ! "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$ ]]; then
-            echo "::error::Tag '${TAG}' is not a release tag. Expected vX.Y.Z or vX.Y.Z-rcN."
-            exit 1
-          fi
-          FULL="${TAG#v}"
-          # The release candidate and the final release are the very same
-          # artifact, so the -rcN suffix never appears in the package name.
-          VERSION="${FULL%-rc*}"
-          if [[ "${FULL}" == *-rc* ]]; then PRERELEASE=true; else PRERELEASE=false; fi
-          echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
-          echo "PRERELEASE=${PRERELEASE}" >> "${GITHUB_ENV}"
-          echo "SRC_NAME=${ARTIFACT_PREFIX}-${VERSION}-incubating-src" >> "${GITHUB_ENV}"
-
-      - name: Build Apache source package
-        run: |
-          set -euo pipefail
-          git archive --format=tar.gz --prefix="${SRC_NAME}/" -o "${SRC_NAME}.tar.gz" HEAD
-          sha512sum "${SRC_NAME}.tar.gz" > "${SRC_NAME}.tar.gz.sha512"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: '20.x'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install Dependency
-        run: yarn install
-
-      - name: Run Unit test
-        run: yarn run test
-
-      # An -rcN tag only ever produces a pre-release; the vote decides whether
-      # it is promoted, which happens by pushing the matching vX.Y.Z tag.
-      - name: Publish GitHub release
+          python-version: '3.12'
+      - name: Validate mode and committed version
+        id: meta
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          EVENT: ${{ github.event_name }}
+          PROJECT_RESULT: ${{ inputs.project_result }}
+          INCUBATOR_RESULT: ${{ inputs.incubator_result }}
+        run: |
+          set -euo pipefail
+          python .github/scripts/release.py meta "$TAG" >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT" == workflow_dispatch ]]; then
+            [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+            [[ "$PROJECT_RESULT" =~ ^https://lists\.apache\.org/thread/[a-z0-9]+$ ]]
+            [[ "$INCUBATOR_RESULT" =~ ^https://lists\.apache\.org/thread/[a-z0-9]+$ ]]
+          else
+            [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc[1-9][0-9]*$ ]]
+          fi
+      - name: Refuse replacement of an existing GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
-          FLAGS=""
-          if [[ "${PRERELEASE}" == "true" ]]; then FLAGS="--prerelease"; fi
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "${GITHUB_REF_NAME}" \
-            --generate-notes \
-            ${FLAGS} \
-            "${SRC_NAME}.tar.gz" "${SRC_NAME}.tar.gz.sha512"
-
-      - name: Publish to npm
-        if: env.PRERELEASE == 'false'
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo '::error::Release exists; assets will not be overwritten. Inspect partial publication before retrying.'
+            exit 1
+          fi
+      - name: Export unsigned source candidate
+        if: steps.meta.outputs.is_rc == 'true'
+        env:
+          TAG: ${{ github.ref_name }}
+        run: python .github/scripts/release.py archive "$TAG"
+      - name: Verify approved ASF originals against the final tag
+        if: steps.meta.outputs.is_rc == 'false'
+        env:
+          TAG: ${{ inputs.tag }}
+        run: python .github/scripts/release.py verify "$TAG"
+      - uses: actions/setup-node@v4
+        if: steps.meta.outputs.is_rc == 'false'
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Build and test npm package from approved source
+        if: steps.meta.outputs.is_rc == 'false'
+        env:
+          NAME: ${{ steps.meta.outputs.name }}
+        run: |
+          set -euo pipefail
+          cd "dist-release/source/$NAME"
+          yarn install --frozen-lockfile --ignore-scripts
+          yarn lint
+          yarn format:check
+          yarn test --runInBand
+          yarn build
+          mkdir -p "$GITHUB_WORKSPACE/npm-package"
+          npm pack --ignore-scripts --pack-destination "$GITHUB_WORKSPACE/npm-package"
+          python "$GITHUB_WORKSPACE/.github/scripts/release.py" npm-check "$GITHUB_WORKSPACE"/npm-package/*.tgz
+      - name: Publish approved-source npm package
+        if: steps.meta.outputs.is_rc == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish npm-package/*.tgz --access public
+
+      - name: Write release notes
+        env:
+          IS_RC: ${{ steps.meta.outputs.is_rc }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          PROJECT_RESULT: ${{ inputs.project_result }}
+          INCUBATOR_RESULT: ${{ inputs.incubator_result }}
+        run: |
+          printf 'Apache Casbin (Incubating) — Casbin.js %s\n\n' "$VERSION" > release-notes.md
+          cat DISCLAIMER >> release-notes.md
+          if [[ "$IS_RC" == true ]]; then
+            printf '\n\nUnsigned source candidate for review; the RM must sign and stage it before voting. This is not an approved release.\n' >> release-notes.md
+          else
+            printf '\n\nProject result: %s\nIPMC result: %s\nSource assets are the approved ASF originals.\n' "$PROJECT_RESULT" "$INCUBATOR_RESULT" >> release-notes.md
+          fi
+      - name: Create GitHub release without replacing assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          IS_RC: ${{ steps.meta.outputs.is_rc }}
         run: |
           set -euo pipefail
-          npm version "${VERSION}" --no-git-tag-version --allow-same-version
-          npm publish --access public
+          kind=(--latest)
+          if [[ "$IS_RC" == true ]]; then kind=(--prerelease --latest=false); fi
+          gh release create "$TAG" --title "$TAG (Apache Casbin Incubating)" --notes-file release-notes.md "${kind[@]}" dist-release/*.tar.gz dist-release/*.sha512 $(find dist-release -maxdepth 1 -name '*.asc' -print)
