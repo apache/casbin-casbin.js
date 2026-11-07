@@ -1,10 +1,10 @@
 const STORAGE_PREFIX = 'casbinjs_';
 
 const isLocalStorageAvailable: boolean = (() => {
-    if (typeof window === 'undefined' || !window.localStorage) {
-        return false;
-    }
     try {
+        if (typeof window === 'undefined' || !window.localStorage) {
+            return false;
+        }
         const key = 'fUjXn2r59'; // A random key
         window.localStorage.setItem(key, 'test');
         window.localStorage.getItem(key);
