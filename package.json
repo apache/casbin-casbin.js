@@ -1,6 +1,6 @@
 {
-  "name": "casbin.js",
-  "version": "1.2.0",
+  "name": "apache-casbin.js",
+  "version": "1.3.0",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "files": [
@@ -10,7 +10,7 @@
   ],
   "sideEffects": false,
   "repository": "https://github.com/apache/casbin-casbin.js.git",
-  "author": "Casbin",
+  "author": "Apache Casbin",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=20.0.0"
@@ -60,5 +60,11 @@
   "dependencies": {
     "casbin-core": "^0.0.0-beta.2",
     "js-cookie": "^3.0.8"
+  },
+  "description": "Apache Casbin (Incubating) frontend authorization library for ACL, RBAC and ABAC.",
+  "homepage": "https://casbin.apache.org/",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   }
 }

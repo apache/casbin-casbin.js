@@ -1,30 +1,47 @@
-# Casbin.js
+# Apache Casbin.js (Incubating)
 
 [![GitHub Actions](https://github.com/apache/casbin-casbin.js/workflows/build/badge.svg)](https://github.com/apache/casbin-casbin.js/actions)
 [![Release](https://img.shields.io/github/release/apache/casbin-casbin.js.svg)](https://github.com/apache/casbin-casbin.js/releases/latest)
 [![NPM version][npm-image]][npm-url]
 [![NPM download][download-image]][download-url]
-[![install size](https://packagephobia.now.sh/badge?p=casbin.js)](https://packagephobia.now.sh/result?p=casbin.js)
+[![install size](https://packagephobia.now.sh/badge?p=apache-casbin.js)](https://packagephobia.now.sh/result?p=apache-casbin.js)
 [![Discord](https://img.shields.io/discord/1022748306096537660?logo=discord&label=discord&color=5865F2)](https://discord.com/invite/S5UjpzGZjN)
 
-[npm-image]: https://img.shields.io/npm/v/casbin.js.svg?style=flat-square
-[npm-url]: https://npmjs.org/package/casbin.js
-[download-image]: https://img.shields.io/npm/dm/casbin.js.svg?style=flat-square
-[download-url]: https://npmjs.org/package/casbin.js
+[npm-image]: https://img.shields.io/npm/v/apache-casbin.js.svg?style=flat-square
+[npm-url]: https://npmjs.org/package/apache-casbin.js
+[download-image]: https://img.shields.io/npm/dm/apache-casbin.js.svg?style=flat-square
+[download-url]: https://npmjs.org/package/apache-casbin.js
 
 Casbin.js is the frontend authorization library of [Casbin](https://casbin.apache.org). It evaluates the permission of the current user in a browser with the same model and policies as the backend, for access control models like ACL, RBAC and ABAC.
+
+## Incubation status
+
+Apache Casbin (Incubating) is an effort undergoing incubation at the Apache Software Foundation (ASF), sponsored by the Apache Incubator PMC.
+
+Incubation is required of all newly accepted projects until a further review indicates that the infrastructure, communications, and decision making process have stabilized in a manner consistent with other successful ASF projects.
+
+While incubation status is not necessarily a reflection of the completeness or stability of the code, it does indicate that the project has yet to be fully endorsed by the ASF.
 
 ## Installation
 
 ```bash
-npm install casbin.js
+npm install apache-casbin.js
 ```
 
 or
 
 ```bash
-yarn add casbin.js
+yarn add apache-casbin.js
 ```
+
+Version 1.3.0 uses the npm package name `apache-casbin.js`. Replace imports from
+`casbin.js` with `apache-casbin.js` when migrating. Versions through 1.2.0 remain
+under the historical package name; this does not change those packages.
+
+Browser permission checks control the user interface. Enforce authorization again
+on the backend for every protected operation. Models, policies and permission
+cookies are trusted application inputs; this library does not provide a sandbox
+for expressions supplied by untrusted users.
 
 ## Modes
 
@@ -41,7 +58,7 @@ Casbin.js can load the permission in three ways:
 `setPermission` accepts either a map of actions to objects, or the model and policies produced by the backend's `CasbinJsGetPermissionForUser`.
 
 ```javascript
-const casbin = require('casbin.js');
+const casbin = require('apache-casbin.js');
 
 // A map of actions to objects: the user can read data1 and data2, and write data1.
 const authorizer = new casbin.Authorizer('manual');
