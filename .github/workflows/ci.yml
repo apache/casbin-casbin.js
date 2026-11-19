@@ -39,7 +39,10 @@ jobs:
           cache: yarn
 
       - name: Install Dependency
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Check release safety helpers
+        run: python3 -m unittest discover -s .github/scripts -p "test_*.py"
 
       - name: Run Lint
         run: yarn run lint
@@ -64,7 +67,7 @@ jobs:
           cache: yarn
 
       - name: Install Dependency
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --ignore-scripts
 
       - name: Run Unit test
         run: yarn run test
