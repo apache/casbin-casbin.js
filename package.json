@@ -58,7 +58,7 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
-    "casbin-core": "^0.0.0-beta.2",
+    "casbin-core": "0.0.0-beta.2",
     "js-cookie": "^3.0.8"
   },
   "description": "Apache Casbin (Incubating) frontend authorization library for ACL, RBAC and ABAC.",
